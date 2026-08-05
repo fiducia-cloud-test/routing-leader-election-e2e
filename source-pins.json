@@ -3,7 +3,7 @@
   "sources": {
     "fiducia-cloud/fiducia-routing.rs": {
       "branch": "main",
-      "sha": "7379bc5fc12fed2d89c2fa92a04b590dc5cce97b",
+      "sha": "0672017eabdf9b7006d6da4a7c3ae96ef542e445",
       "exists": true
     },
     "fiducia-cloud/fiducia-load-balance.rs": {
