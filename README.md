@@ -18,7 +18,7 @@ Source organization: `fiducia-cloud`
 
 | Source | Commit | Branch observed |
 |---|---:|---|
-| `fiducia-cloud/fiducia-routing.rs` | `b23beb49c14eedb2c959f43d3427983e98b347ca` | `main` |
+| `fiducia-cloud/fiducia-routing.rs` | `7379bc5fc12fed2d89c2fa92a04b590dc5cce97b` | `main` |
 | `fiducia-cloud/fiducia-load-balance.rs` | `88505ed0be153ead737f1b253c08b07854cf114a` | `main` |
 | `fiducia-cloud/fiducia-node.rs` | `b9177646f9c69c67b76b3fbee9fded9b585e9c0c` | `main` |
 
