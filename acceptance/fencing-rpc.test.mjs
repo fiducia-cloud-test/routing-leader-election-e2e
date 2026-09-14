@@ -48,3 +48,20 @@ test("actual Durable Object RPC enforces leader fencing across release/reacquire
   assert.equal(second.lease.holder, "leader-b");
   assert.ok(second.lease.fencing_token > token1, "new leader must receive a strictly newer fencing token");
 });
+
+test("expired leader can be replaced without an explicit release and token advances", async () => {
+  const expiringResource = "route:ephemeral-leader";
+  const first = await call("/acquire", { resource: expiringResource, holder: "leader-a", ttl_ms: 1_000 });
+  assert.equal(first.acquired, true);
+  const token1 = first.lease.fencing_token;
+
+  await new Promise((resolve) => setTimeout(resolve, 1_100));
+
+  const takeover = await call("/acquire", { resource: expiringResource, holder: "leader-b", ttl_ms: 1_000 });
+  assert.equal(takeover.acquired, true);
+  assert.equal(takeover.lease.holder, "leader-b");
+  assert.ok(takeover.lease.fencing_token > token1, "expiry takeover must advance the fencing token");
+
+  const staleOldLeaderRelease = await call("/release", { resource: expiringResource, holder: "leader-a", fencing_token: token1 });
+  assert.equal(staleOldLeaderRelease.released, false, "expired former leader must not release the replacement lease");
+});
