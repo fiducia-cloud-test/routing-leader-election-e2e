@@ -1,0 +1,6 @@
+{
+  "name": "fiducia-routing-leader-election-acceptance",
+  "private": true,
+  "type": "module",
+  "devDependencies": { "wrangler": "4.131.1" }
+}

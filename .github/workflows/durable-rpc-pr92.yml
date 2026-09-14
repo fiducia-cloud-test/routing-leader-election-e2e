@@ -1,0 +1,72 @@
+name: Fiducia PR92 Durable Object RPC fencing acceptance
+
+on:
+  push:
+    branches: [test/durable-rpc-pr92]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: durable-rpc-pr92-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rpc-fencing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out test harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out exact Fiducia PR92 source head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: fiducia-cloud/fiducia-infra
+          ref: d1327f6aed1444c5073087ec9d11062230b3cc62
+          path: source/fiducia-infra
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: "22.22.1"
+
+      - name: Install pinned Wrangler
+        working-directory: acceptance
+        run: npm install --package-lock=false --ignore-scripts --no-audit --no-fund
+
+      - name: Validate wrapper and source binding types
+        working-directory: acceptance
+        run: |
+          set -euo pipefail
+          npx wrangler types --env-interface CloudflareBindings
+          npx wrangler deploy --dry-run --outdir .wrangler/dry-run
+
+      - name: Start local workerd RPC harness
+        working-directory: acceptance
+        run: |
+          set -euo pipefail
+          npx wrangler dev --local --port 8790 --log-level error > "$RUNNER_TEMP/wrangler-rpc.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/wrangler-rpc.pid"
+          for i in $(seq 1 40); do
+            if curl --fail --silent 'http://127.0.0.1:8790/health?object=leader-election-rpc' >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/wrangler-rpc.log"
+          exit 1
+
+      - name: Exercise real acquire, renew, stale release, and fenced takeover RPCs
+        run: node --test acceptance/fencing-rpc.test.mjs
+
+      - name: Stop local workerd
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/wrangler-rpc.pid"; then
+            kill "$(cat "$RUNNER_TEMP/wrangler-rpc.pid")" 2>/dev/null || true
+          fi
+          cat "$RUNNER_TEMP/wrangler-rpc.log" 2>/dev/null || true
